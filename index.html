@@ -20,7 +20,7 @@
             border-radius: 1.25rem;
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-            transition: transform 0.3s ease, opacity 0.5s ease;
+            transition: transform 0.3s ease;
         }
         .glass-card:hover {
             transform: translateY(-4px);
@@ -29,23 +29,9 @@
             transition: background 1s ease;
         }
         .weather-icon {
-            width: 120px;
-            height: 120px;
+            width: 140px;
+            height: 140px;
             margin: 0 auto;
-        }
-        /* Loading spinner */
-        .spinner {
-            border: 6px solid rgba(255, 255, 255, 0.2);
-            border-top: 6px solid #4f46e5;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg);}
-            100% { transform: rotate(360deg);}
         }
     </style>
 </head>
@@ -59,14 +45,8 @@
             <button id="search-button" class="bg-indigo-600 text-white p-4 rounded-xl font-semibold hover:bg-indigo-500 transition-colors">Get Weather</button>
         </div>
 
-        <!-- Message Box -->
-        <div id="message-box" class="text-center mt-2 text-sm text-red-400"></div>
-
-        <!-- Loading Spinner -->
-        <div id="loading-spinner" class="hidden spinner"></div>
-
         <!-- Weather Card -->
-        <div id="weather-card" class="hidden glass-card p-8 opacity-0">
+        <div id="weather-card" class="hidden glass-card p-8">
             <div id="weather-icon-container" class="mb-6 text-center"></div>
             <h2 id="city-name" class="text-4xl font-bold text-center mb-6"></h2>
 
@@ -118,6 +98,8 @@
             </div>
         </div>
 
+        <!-- Message Box -->
+        <div id="message-box" class="text-center mt-6 text-sm text-red-400"></div>
     </div>
 
     <script>
@@ -138,7 +120,6 @@
         const weatherIconContainer = document.getElementById('weather-icon-container');
         const messageBox = document.getElementById('message-box');
         const body = document.body;
-        const loadingSpinner = document.getElementById('loading-spinner');
 
         const weatherCodeMap = {
             0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
@@ -186,7 +167,6 @@
         async function fetchWeather(location) {
             if (!location) { showMessage("Please enter a location."); return; }
             showMessage("Fetching weather data...", false);
-            loadingSpinner.classList.remove('hidden');
             weatherCard.classList.add('hidden');
             hourlyForecastContainer.innerHTML = '';
             dailyForecastContainer.innerHTML = '';
@@ -198,7 +178,6 @@
                 const geocodeData = await geocodeResponse.json();
                 if (!geocodeData.results || geocodeData.results.length === 0) {
                     showMessage(`Could not find location: "${location}".`);
-                    loadingSpinner.classList.add('hidden');
                     return;
                 }
                 const result = geocodeData.results[0];
@@ -225,22 +204,17 @@
                 const currentAqi = airData.hourly?.us_aqi[currentHour] ?? 'N/A';
                 airQualityEl.textContent = `AQI: ${currentAqi}`;
 
-                // Hourly Forecast
                 for (let i = currentHour; i < currentHour + 24; i++) {
                     if (i >= hourly.time.length) break;
                     const hour = new Date(hourly.time[i]).getHours();
                     const temp = Math.round(hourly.temperature_2m[i]);
                     const code = hourly.weathercode[i];
                     const div = document.createElement('div');
-                    div.className = 'flex flex-col items-center p-3 rounded-lg bg-gray-700 w-24 flex-shrink-0 text-center transition-transform transform hover:scale-105';
-                    div.innerHTML = `<p class="font-semibold">${hour}:00</p>
-                                     <div class="my-2">${getSmallWeatherIcon(code)}</div>
-                                     <p class="text-sm capitalize">${weatherCodeMap[code]}</p>
-                                     <p class="text-lg font-bold">${temp}°F</p>`;
+                    div.className = 'flex flex-col items-center p-3 rounded-lg bg-gray-700 w-24 flex-shrink-0 text-center';
+                    div.innerHTML = `<p class="font-semibold">${hour}:00</p><p class="text-xl my-2">${temp}°F</p><p class="text-sm capitalize">${weatherCodeMap[code]}</p>`;
                     hourlyForecastContainer.appendChild(div);
                 }
 
-                // Daily Forecast
                 for (let i = 0; i < daily.time.length; i++) {
                     const date = new Date(daily.time[i]);
                     const day = date.toLocaleDateString('en-US', { weekday: 'short' });
@@ -248,37 +222,20 @@
                     const low = Math.round(daily.temperature_2m_min[i]);
                     const code = daily.weathercode[i];
                     const div = document.createElement('div');
-                    div.className = 'flex items-center justify-between p-4 glass-card transition-transform transform hover:scale-105';
-                    div.innerHTML = `<p class="font-semibold text-white">${day}</p>
-                                     <p class="text-gray-300 capitalize">${weatherCodeMap[code]}</p>
-                                     <div class="flex gap-4">
-                                        <p class="font-bold text-white">${high}°F</p>
-                                        <p class="text-gray-400">${low}°F</p>
-                                     </div>`;
+                    div.className = 'flex items-center justify-between p-4 glass-card';
+                    div.innerHTML = `<p class="font-semibold text-white">${day}</p><p class="text-gray-300 capitalize">${weatherCodeMap[code]}</p><div class="flex gap-4"><p class="font-bold text-white">${high}°F</p><p class="text-gray-400">${low}°F</p></div>`;
                     dailyForecastContainer.appendChild(div);
                 }
 
-                displayWeatherIcon(current.weathercode);
-                applyWeatherTheme(current.weathercode);
-
-                loadingSpinner.classList.add('hidden');
                 weatherCard.classList.remove('hidden');
-                setTimeout(() => weatherCard.style.opacity = 1, 50);
                 showMessage("Weather data updated successfully!", false);
+                applyWeatherTheme(current.weathercode);
+                displayWeatherIcon(current.weathercode);
 
             } catch (error) {
                 showMessage("Failed to fetch weather data. Please check your network connection.");
                 console.error(error);
-                loadingSpinner.classList.add('hidden');
             }
-        }
-
-        function getSmallWeatherIcon(code) {
-            if (code <= 3) return weatherIcons.sunny;
-            else if (code <= 48) return weatherIcons.cloudy;
-            else if (code <= 67) return weatherIcons.rainy;
-            else if (code <= 77) return weatherIcons.snowy;
-            else return weatherIcons.stormy;
         }
 
         searchButton.addEventListener('click', () => fetchWeather(locationInput.value.trim()));
